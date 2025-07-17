@@ -27,6 +27,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon ./src/index.js",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "build": "prisma generate"
   }
 }
