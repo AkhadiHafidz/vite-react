@@ -10,7 +10,8 @@ import purchaseRouter from "./purchase.route.js";
 
 const router = Router();
 
-// Hapus awalan "/api" dan ganti dengan path yang lebih spesifik
+// --- Definisi Rute-Rute API ---
+// Perhatikan, tidak ada awalan "/api" di sini.
 router.use("/users", userRouter);
 router.use("/categories", categoryRoute);
 router.use("/suppliers", supplierRouter);
@@ -20,15 +21,17 @@ router.use("/orders", orderRouter);
 router.use("/order-returns", orderReturnRouter);
 router.use("/purchases", purchaseRouter);
 
-// Menambahkan rute dasar untuk /api agar tidak 404
+// --- Rute Dasar untuk /api ---
+// Untuk mengecek apakah router API berjalan saat diakses di /api
 router.get("/", (req, res) => {
   res.status(200).json({ message: "Selamat datang di Binals API" });
 });
 
-// Handler 404 untuk endpoint API yang tidak ditemukan
+// --- Handler 404 untuk API ---
+// Menangkap semua permintaan ke /api/... yang tidak cocok dengan rute di atas.
 router.use("*", (req, res) => {
   res.status(404).json({
-    message: "API endpoint tidak ditemukan",
+    message: "Endpoint API tidak ditemukan",
   });
 });
 
