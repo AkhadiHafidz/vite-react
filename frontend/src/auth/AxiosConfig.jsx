@@ -4,32 +4,37 @@ import axios from "axios";
 // Instance Axios dibuat dengan konfigurasi yang spesifik dan aman.
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
-  timeout: import.meta.env.VITE_API_TIMEOUT,
+  timeout: import.meta.env.VITE_API_TIMEOUT
+    ? parseInt(import.meta.env.VITE_API_TIMEOUT)
+    : 10000, // Default timeout 10 detik
   headers: {
     "Content-Type": "application/json",
   },
 });
 
 // Interceptor untuk menambahkan token otorisasi ke setiap request.
-api.interceptors.request.use((request) => {
-  const token = secureLocalStorage.getItem("acessToken");
-  if (token) {
-    request.headers["Authorization"] = `Bearer ${token}`;
+api.interceptors.request.use(
+  (config) => {
+    const token = secureLocalStorage.getItem("acessToken");
+    if (token) {
+      config.headers["Authorization"] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return request;
-});
+);
 
 // Logika untuk me-refresh token jika token akses sudah kedaluwarsa.
-const refreshAuthLogic = async (failedRequest) => {
+const refreshAuthLogic = async () => {
   try {
     const refreshToken = secureLocalStorage.getItem("refreshToken");
-    const response = await axios.get(`/api/users/refresh`, {
-        // Menggunakan baseURL dari pengaturan global sementara untuk request ini
-        baseURL: import.meta.env.VITE_API_URL, 
-        headers: {
-            Authorization: `Bearer ${refreshToken}`,
-            "Content-Type": "application/json",
-        }
+    // Menggunakan instance 'api' untuk konsistensi, meskipun endpoint-nya absolut
+    const response = await api.get(`/api/users/refresh`, {
+      headers: {
+        Authorization: `Bearer ${refreshToken}`,
+      },
     });
 
     const { acessToken, refreshToken: newRefreshToken, result } = response.data;
@@ -37,15 +42,13 @@ const refreshAuthLogic = async (failedRequest) => {
     secureLocalStorage.setItem("acessToken", acessToken);
     secureLocalStorage.setItem("refreshToken", newRefreshToken);
     secureLocalStorage.setItem("user", result);
-    
-    console.log("Simpan token baru berhasil ...");
-    
-    failedRequest.config.headers["Authorization"] = `Bearer ${acessToken}`;
-    return Promise.resolve();
+
+    console.log("Token baru berhasil disimpan.");
+    return acessToken; // Kembalikan token baru
   } catch (error) {
     // Jika refresh token juga gagal/kedaluwarsa, hapus semua data dan kembali ke halaman login.
     secureLocalStorage.clear();
-    console.log(error.message);
+    console.error("Gagal refresh token:", error);
     window.location.href = "/";
     return Promise.reject(error);
   }
@@ -56,15 +59,20 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    // Cek jika error adalah 401 dan request ini belum pernah dicoba ulang
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        await refreshAuthLogic(originalRequest);
+        const newAccessToken = await refreshAuthLogic();
+        // Perbarui header di request asli dengan token baru
+        originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
+        // Coba lagi request asli dengan token baru
         return api(originalRequest);
       } catch (refreshError) {
         return Promise.reject(refreshError);
       }
     }
+    // Untuk error lain, langsung tolak promise-nya
     return Promise.reject(error);
   }
 );
