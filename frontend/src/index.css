@@ -1,0 +1,20 @@
+a {
+  text-decoration: none !important;
+}
+
+.form-control:focus {
+  box-shadow: 0 0 0 0.1rem #c2dbfeff !important;
+}
+.dropdown-item:hover,
+.dropdown-item:active,
+.dropdown-item.active {
+  background-color: #212529 !important; /* hitam */
+  color: #fff !important;               /* putih */
+}
+.list-group-item.active,
+.list-group-item:active {
+  background-color: #212529 !important; /* hitam */
+  color: #fff !important;               /* putih */
+  border-color: #212529 !important;
+}
+
