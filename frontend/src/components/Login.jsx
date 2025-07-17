@@ -10,6 +10,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const API_URL = import.meta.env.VITE_API_URL;
       const response = await axiosInstance.post("/api/users/login", {
         userName,
         password,
